@@ -216,11 +216,11 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 		c.Execute("set", "fax_enable_t38=true", true)
 	}
 	c.Execute("set", fmt.Sprintf("fax_ident=%s", csi), true)
-	c.Execute("rxfax", filenameAbs, true)
 
-	result := gofaxlib.NewFaxResult(channelUUID, sessionlog)
 	es := gofaxlib.NewEventStream(c)
 
+	// c.Execute("rxfax", filenameAbs, true)
+	result := gofaxlib.NewFaxResult(channelUUID, sessionlog)
 	pages := result.TransferredPages
 
 EventLoop:
@@ -240,10 +240,10 @@ EventLoop:
 				}
 
 				if pages != result.TransferredPages {
-					pages = result.TransferredPages
-					if device != nil {
-						gofaxlib.Faxq.ReceiveStatus(device.Name, "P")
-					}
+				     // pages = result.TransferredPages
+				     // if device != nil {
+				     	// gofaxlib.Faxq.ReceiveStatus(device.Name, "P")
+				     // }
 				}
 			}
 		case err := <-es.Errors():
@@ -264,7 +264,7 @@ EventLoop:
 	if device != nil {
 		gofaxlib.Faxq.ReceiveStatus(device.Name, "D")
 	}
-	sessionlog.Log(fmt.Sprintf("Success: %v, Hangup Cause: %v, Result: %v", result.Success, result.Hangupcause, result.ResultText))
+	// sessionlog.Log(fmt.Sprintf("Success: %v, Hangup Cause: %v, Result: %v", result.Success, result.Hangupcause, result.ResultText))
 
 	xfl := gofaxlib.NewXFRecord(result)
 	xfl.Modem = usedDevice
