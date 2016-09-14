@@ -96,6 +96,7 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	c.Send("linger")
 	c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
 	c.Send("event plain CHANNEL_CALLSTATE CUSTOM spandsp::rxfaxnegociateresult spandsp::rxfaxpageresult spandsp::rxfaxresult")
+	c.Send("event plain DTMF")
 
 	// Extract Caller/Callee
 	recipient := connectev.Get("Variable_sip_to_user")
@@ -216,7 +217,7 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 		c.Execute("set", "fax_enable_t38=true", true)
 	}
 	c.Execute("set", fmt.Sprintf("fax_ident=%s", csi), true)
-	c.Execute("rxfax", filenameAbs, true)
+	// c.Execute("rxfax", filenameAbs, true)
 
 	result := gofaxlib.NewFaxResult(channelUUID, sessionlog)
 	es := gofaxlib.NewEventStream(c)
@@ -227,11 +228,13 @@ EventLoop:
 	for {
 		select {
 		case ev := <-es.Events():
+			logger.Logger.Println("HIIIII")
 			if ev.Get("Content-Type") == "text/disconnect-notice" {
 				sessionlog.Log("Received disconnect message")
 				//c.Close()
 				//break EventLoop
 			} else {
+				sessionlog.Log(ev.Get("Event-Name"))
 				result.AddEvent(ev)
 				if result.Hangupcause != "" {
 					c.Close()
