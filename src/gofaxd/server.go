@@ -95,7 +95,7 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	// Filter and subscribe to events
 	c.Send("linger")
 	c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
-	c.Send("event plain CHANNEL_CALLSTATE CUSTOM spandsp::rxfaxnegociateresult spandsp::rxfaxpageresult spandsp::rxfaxresult")
+	c.Send("event plain CHANNEL_CALLSTATE CUSTOM spandsp::rxfaxnegociateresult spandsp::rxfaxpageresult spandsp::rxfaxresult DTMF")
 
 	// Extract Caller/Callee
 	recipient := connectev.Get("Variable_sip_to_user")
@@ -232,6 +232,7 @@ EventLoop:
 				//c.Close()
 				//break EventLoop
 			} else {
+				logger.Logger.Println(ev.Get("Event-Name"))
 				result.AddEvent(ev)
 				if result.Hangupcause != "" {
 					c.Close()
