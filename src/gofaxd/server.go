@@ -99,7 +99,7 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	c.Send("event plain DTMF")
 
 	c.Execute("sleep", "1000", true);
-	c.Execute("answer", "", false);
+	c.Execute("answer", "", true);
 	// c.Execute("start_dtmf", "", true);
 
 	ev, err := c.Execute("playback", audioFile, true)
