@@ -96,9 +96,13 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	// Filter and subscribe to events
 	c.Send("linger")
 	c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
-	c.Send("event plain CHANNEL_CALLSTATE CUSTOM spandsp::rxfaxnegociateresult spandsp::rxfaxpageresult spandsp::rxfaxresult DTMF")
+        c.Send("event plain CHANNEL_CALLSTATE CUSTOM spandsp::rxfaxnegociateresult spandsp::rxfaxpageresult spandsp::rxfaxresult DTMF")
+        c.Send("event plain DTMF")
 
 
+
+
+	//c.Execute("sleep", "1000", true);
 	c.Execute("answer", "", true)
 
 	ev, err := c.Execute("playback", audioFile, true)
