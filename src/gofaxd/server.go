@@ -94,13 +94,13 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	defer logger.Logger.Println(channelUUID, "Handler ending")
 
 	// Filter and subscribe to events
-	// c.Send("linger")
-	// c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
+	c.Send("linger")
+	c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
 	c.Send("event plain DTMF")
 
 	c.Execute("sleep", "1000", true);
 	c.Execute("answer", "", false);
-	c.Execute("start_dtmf", "", true);
+	// c.Execute("start_dtmf", "", true);
 
 	ev, err := c.Execute("playback", audioFile, true)
 	if err != nil {
@@ -125,14 +125,14 @@ EventLoop:
 				//c.Close()
 				//break EventLoop
 			} else {
-				if ev.Get("Dtmf-Source") == "INBAND_AUDIO" {
+				//if ev.Get("Dtmf-Source") == "INBAND_AUDIO" {
 						// logger.Logger.Printf("------------------------")
 						// logger.Logger.Printf(ev.Get("Event-Name"))
-						logger.Logger.Printf("key press: " + ev.Get("Dtmf-Digit"))
+						logger.Logger.Printf("key press: " + ev.Get("Dtmf-Digit") + " " + ev.Get("Dtmf-Source"))
 						// logger.Logger.Printf(ev.Get("Dtmf-Source"))
 						//ev.PrettyPrint();
 						// logger.Logger.Printf("========================")
-				}
+				//}
 			}
 		case err := <-es.Errors():
 			if err.Error() == "EOF" {
