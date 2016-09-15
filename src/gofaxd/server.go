@@ -73,11 +73,64 @@ func (e *EventSocketServer) Kill() {
 	close(e.killChan)
 }
 
+func (e *EventSocketServer) getExtension(c *eventsocket.Connection) string {
+	audioFile := "/home/admin/code/gofaxip/big_bopper_hello_baby.wav"
+	extension := "";
+
+	c.Send("event plain DTMF")
+	c.Execute("sleep", "1000", true);
+	c.Execute("answer", "", true);
+
+	ev, err := c.Execute("playback", audioFile, true)
+	if err != nil {
+		logger.Logger.Printf("playback error")
+	}
+	ev.PrettyPrint()
+
+	es := gofaxlib.NewEventStream(c)
+
+ExtensionEvents:
+	for {
+		select {
+		case ev := <-es.Events():
+			if ev.Get("Content-Type") == "text/disconnect-notice" {
+				logger.Logger.Printf("Received disconnect message")
+			} else {
+
+				if ev.Get("Dtmf-Source") == "RTP" {
+					// logger.Logger.Printf("------------------------")
+					// logger.Logger.Printf(ev.Get("Event-Name"))
+					logger.Logger.Printf("key press: " + ev.Get("Dtmf-Digit") + " " + ev.Get("Dtmf-Source"))
+					// logger.Logger.Printf(ev.Get("Dtmf-Source"))
+					//ev.PrettyPrint();
+					// logger.Logger.Printf("========================")
+					extension :=  extension + ev.Get("Dtmf-Digit")
+					if len(extension) >= 3 {
+						break ExtensionEvents
+					}
+				}
+			}
+		case err := <-es.Errors():
+			if err.Error() == "EOF" {
+				logger.Logger.Printf("Event socket client disconnected")
+			} else {
+				logger.Logger.Printf("Error:", err)
+			}
+			break ExtensionEvents
+		case _ = <-e.killChan:
+			logger.Logger.Printf("Kill reqeust received, destroying channel")
+			c.Close()
+			return "error" // sorry, i don't know what im doing here
+		}
+	}
+
+	return extension
+}
+
 // Handle incoming call
 func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	logger.Logger.Println("Incoming Event Socket connection from", c.RemoteAddr())
 
-	audioFile := "/home/admin/code/gofaxip/big_bopper_hello_baby.wav"
 	connectev, err := c.Send("connect") // Returns: Ganzer Event mit alles
 	if err != nil {
 		c.Send("exit")
@@ -93,61 +146,20 @@ func (e *EventSocketServer) handler(c *eventsocket.Connection) {
 	}
 	defer logger.Logger.Println(channelUUID, "Handler ending")
 
-	// Filter and subscribe to events
-	c.Send("linger")
-	c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
-	c.Send("event plain DTMF")
-
-	c.Execute("sleep", "1000", true);
-	c.Execute("answer", "", true);
-	// c.Execute("start_dtmf", "", true);
-
-	ev, err := c.Execute("playback", audioFile, true)
-	if err != nil {
-		logger.Logger.Printf("playback error")
-	}
-	ev.PrettyPrint()
-
 	// Extract Caller/Callee
 	recipient := connectev.Get("Variable_sip_to_user")
 	cidname := connectev.Get("Channel-Caller-Id-Name")
 	cidnum := connectev.Get("Channel-Caller-Id-Number")
 
 	logger.Logger.Printf("Incoming call to %v from %v <%v>", recipient, cidname, cidnum)
-	es := gofaxlib.NewEventStream(c)
 
-EventLoop:
-	for {
-		select {
-		case ev := <-es.Events():
-			if ev.Get("Content-Type") == "text/disconnect-notice" {
-				logger.Logger.Printf("Received disconnect message")
-				//c.Close()
-				//break EventLoop
-			} else {
-				//if ev.Get("Dtmf-Source") == "INBAND_AUDIO" {
-						// logger.Logger.Printf("------------------------")
-						// logger.Logger.Printf(ev.Get("Event-Name"))
-						logger.Logger.Printf("key press: " + ev.Get("Dtmf-Digit") + " " + ev.Get("Dtmf-Source"))
-						// logger.Logger.Printf(ev.Get("Dtmf-Source"))
-						//ev.PrettyPrint();
-						// logger.Logger.Printf("========================")
-				//}
-			}
-		case err := <-es.Errors():
-			if err.Error() == "EOF" {
-				logger.Logger.Printf("Event socket client disconnected")
-			} else {
-				logger.Logger.Printf("Error:", err)
-			}
-			break EventLoop
-		case _ = <-e.killChan:
-			logger.Logger.Printf("Kill reqeust received, destroying channel")
-			c.Send(fmt.Sprintf("api uuid_kill %v", channelUUID))
-			c.Close()
-			return
-		}
-	}
+	// Filter events
+	c.Send("linger")
+	c.Send(fmt.Sprintf("filter Unique-ID %v", channelUUID))
+
+	extension := e.getExtension(c)
+	logger.Logger.Printf("Got an extension: %v", extension)
+
 
 	return
 }
