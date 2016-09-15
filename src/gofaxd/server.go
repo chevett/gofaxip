@@ -26,6 +26,7 @@ import (
 	// "os/exec"
 	// "path/filepath"
 	// "strconv"
+	"bytes"
 )
 
 const (
@@ -75,7 +76,7 @@ func (e *EventSocketServer) Kill() {
 
 func (e *EventSocketServer) getExtension(c *eventsocket.Connection) string {
 	audioFile := "/home/admin/code/gofaxip/big_bopper_hello_baby.wav"
-	extension := "";
+	var extensionBuffer bytes.Buffer
 
 	c.Send("event plain DTMF")
 	c.Execute("sleep", "1000", true);
@@ -96,16 +97,18 @@ ExtensionEvents:
 			if ev.Get("Content-Type") == "text/disconnect-notice" {
 				logger.Logger.Printf("Received disconnect message")
 			} else {
+				dtmfSource := ev.Get("Dtmf-Source")
+				if dtmfSource == "RTP" {
+					dtmfDigit := ev.Get("Dtmf-Digit")
+					logger.Logger.Printf("Digit: %v", dtmfDigit)
 
-				if ev.Get("Dtmf-Source") == "RTP" {
-					// logger.Logger.Printf("------------------------")
-					// logger.Logger.Printf(ev.Get("Event-Name"))
-					logger.Logger.Printf("key press: " + ev.Get("Dtmf-Digit") + " " + ev.Get("Dtmf-Source"))
-					// logger.Logger.Printf(ev.Get("Dtmf-Source"))
-					//ev.PrettyPrint();
-					// logger.Logger.Printf("========================")
-					extension :=  extension + ev.Get("Dtmf-Digit")
-					if len(extension) >= 3 {
+					if dtmfDigit == "#" {
+						break ExtensionEvents
+					}
+
+					extensionBuffer.WriteString(dtmfDigit)
+
+					if extensionBuffer.Len() >= 4 {
 						break ExtensionEvents
 					}
 				}
@@ -124,7 +127,7 @@ ExtensionEvents:
 		}
 	}
 
-	return extension
+	return extensionBuffer.String()
 }
 
 // Handle incoming call
