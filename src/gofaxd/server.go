@@ -75,7 +75,7 @@ func (e *EventSocketServer) Kill() {
 }
 
 func (e *EventSocketServer) getExtension(c *eventsocket.Connection) string {
-	audioFile := "/home/admin/code/gofaxip/big_bopper_hello_baby.wav"
+	audioFile := "/home/admin/code/gofaxip/Silent.wav"
 	var extensionBuffer bytes.Buffer
 
 	c.Send("event plain DTMF")
